@@ -1,4 +1,4 @@
-def print_length_amounts(black_pixel_lengths):
+def print_length_amounts(black_pixel_lengths: list[list[int]]) -> None:
     length_amounts = dict()
     for row in black_pixel_lengths:
         if len(row) in length_amounts:
