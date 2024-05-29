@@ -1,7 +1,7 @@
 import os
 from dotenv import load_dotenv
 
-DOTENV_PATH = os.path.join('..', '.env')
+# DOTENV_PATH = os.path.join('..', '.env')
 DOTENV_PATH = 'C:\\_Python\\MAI\\6 - Технологии обработки информации\\PZ_4\\.env'
 
 

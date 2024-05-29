@@ -5,10 +5,13 @@ import numpy as np
 from .debug import print_length_amounts
 from .load_env import get_data
 
-def calculate_widths(photo_path: str, dpi: int, verbose=False) -> list[int]:
+def calculate_widths(photo_path: str, dpi: int, inverted: bool, verbose=False) -> list[float]:
     # Load data from the environment
     MAX_ERROR = int(get_data('MAX_ERROR'))
     BINARY_THRESHOLD = int(get_data('BINARY_THRESHOLD'))
+
+    # Если цвета инвертированы, проводники на фотках белого цвета (т.е. 255)
+    conductor_color = 255 if inverted else 0
 
     # Load an image
     img = cv.imread(photo_path, cv.IMREAD_GRAYSCALE)
@@ -27,26 +30,18 @@ def calculate_widths(photo_path: str, dpi: int, verbose=False) -> list[int]:
 
     # Iterate over each row in the image
     for row in img:
-        # Initialize a counter for black pixels
         black_pixel_count = 0
-        # Initialize an empty list to store lengths of black pixels in the current row
         row_black_pixel_lengths = []
-        # Initialize a counter for white pixels
         white_pixel_count = 0
 
-        # Iterate over each pixel in the row
         for pixel in row:
-            # If the pixel is black, increment the black counter
-            if pixel == 0:
+            if pixel == conductor_color:
                 black_pixel_count += 1
-                # If there was a sequence of white pixels before it and it's less than MAX_ERROR, consider them as black
                 if white_pixel_count > 0 and white_pixel_count <= MAX_ERROR:
                     black_pixel_count += white_pixel_count
                     white_pixel_count = 0
-            # If the pixel is white, increment the white counter
             else:
                 white_pixel_count += 1
-                # If there was a sequence of black pixels before it, store the length of the sequence
                 if black_pixel_count > 0:
                     row_black_pixel_lengths.append(black_pixel_count)
                     black_pixel_count = 0
@@ -81,7 +76,7 @@ def calculate_widths(photo_path: str, dpi: int, verbose=False) -> list[int]:
     all_mm_lengths = [length / (dpi / 25.4) for length in all_pixel_lengths]
     return all_mm_lengths
 
-def calculate_statistical_data(sample: list[int], ideal_size) -> list[int]:
+def calculate_statistical_data(sample: list[int], ideal_size, photo: str, inverted: bool) -> list[int]:
     # Считаем мат. ожидание и ст. отклонение разницы между идеальным размером и полученным
     sample = [abs(ideal_size - length) for length in sample]
     expected_value = np.mean(sample)
@@ -94,14 +89,15 @@ def calculate_statistical_data(sample: list[int], ideal_size) -> list[int]:
     percentile_90 = np.percentile(sample, 90)
     # print(f'10th percentile: {percentile_10:.2f} mm')
     # print(f'90th percentile: {percentile_90:.2f} mm')
+    type = 'shablon' if inverted else 'provodnik'
 
-    return [expected_value, standard_deviation, percentile_10, percentile_90]
+    return [expected_value, standard_deviation, percentile_10, percentile_90, ideal_size, photo, type]
 
 def read_data() -> dict[str, pd.DataFrame]:
     data_folder = 'data'
     result = dict()
     for file in os.listdir(data_folder):
-        df = pd.read_csv(os.path.join(data_folder, file))
+        df = pd.read_csv(os.path.join(data_folder, file), sep=';')
         result[file.removesuffix('.csv')] = df
     return result
 
